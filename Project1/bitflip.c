@@ -193,7 +193,7 @@ void print_regular(char *fo_name, char *buf){
 	}
 
 	fclose(fn);	
-
+	printf("Output: %s was output successfully (bitflip)\n", names);
 	free(names);
 }
 
@@ -223,7 +223,7 @@ void print_reverse(char *fo_name, char *buf){
 	}
 
 	fclose(fn);	
-
+	printf("Output: %s was output successfully (bitflip, reverse)\n", names); 
 	free(names);
 }
 
@@ -312,6 +312,7 @@ void print_reverse_noflip(char *fo_name, char *buf){
 	}
 
 	fclose(fn);
+	printf("Output: %s was output successfully (reverse, no bitflip)\n ",names);
 	free(names);
 
 }
