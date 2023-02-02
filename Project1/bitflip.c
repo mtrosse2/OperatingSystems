@@ -12,14 +12,14 @@ void usage();
 void print_reverse_noflip(char *fo_name, char *buf);
 
 int main(int argc, char *argv[]){
-	int i, j;
+	int i;
 	int changed = 0;
 	int max = 25000;
 	int r_and_b = 0;
 	int reverse = 0;
-	char *file_name;
 	int found = 0;
-	char *infile;
+	int infile_idx = -1;
+	int outfile_idx = -1;
 
 	//Check command line input
 	if(argc < 2){
@@ -28,21 +28,48 @@ int main(int argc, char *argv[]){
 	}
 
 	for(i = 1; i < argc; i++){
-		printf("%c\n", argv[i][strlen(argv[i]) - 3]);
 		if (strcmp(argv[i], "-help") == 0){
 			usage();
 			return(1);
 		
 		} else if (strcmp(argv[i], "-o") == 0){
 			i++;
-			file_name = (char *)malloc(strlen(argv[i]) * sizeof(char));
-			//COPY IT HERE.....
+			
+			if(i >= argc){
+				usage();
+				return(1);
+			}
+
+			outfile_idx = i;
 			
 			changed = 1;
 
+			FILE *fp_temp = fopen(argv[outfile_idx], "r");
+
+			if(fp_temp == NULL){
+				//fclose(fp_temp);
+
+			} else if(fp_temp != NULL){
+				printf("Output file already exists\n");
+				fclose(fp_temp);
+				return(7);
+			}
+
+
 		} else if (strcmp(argv[i], "-maxsize") == 0) {
 			i++;
+
+			if(i >= argc){
+				usage();
+				return(1);
+			}
+			
 			max = atoi(argv[i]);
+
+			if(max == 0){
+				printf("Invalid input for maxsize\n");
+				return(8);
+			}
 		
 		} else if (strcmp(argv[i], "-r") == 0){
 			reverse = 1;
@@ -52,19 +79,13 @@ int main(int argc, char *argv[]){
 		
 		}else if (strlen(argv[i]) > 4 && argv[i][strlen(argv[i])-4] == '.' && argv[i][strlen(argv[i])-3] == 't' && argv[i][strlen(argv[i])-2] == 'x' && argv[i][strlen(argv[i])-1] == 't') {
 
-			infile = (char *)malloc(strlen(argv[i]) * sizeof(char));
+			infile_idx = i;
 
-			for(j=0; j<strlen(argv[i]); j++)
-				infile[j] = argv[i][j];
-			
-			//if (changed == 0){
-			//	file_name = (char *)malloc(strlen(argv[i]) * sizeof(char));
-			//	file_name = argv[i];
-			//}
-			file_name = "test.txt";
+			if(changed == 0)
+				outfile_idx = i;
 
 			found = 1;
-
+			
 		}
 
 	}
@@ -76,19 +97,18 @@ int main(int argc, char *argv[]){
 	}
 	
 	//Open the file
-	FILE *fp = fopen(infile, "rb");
+	FILE *fp = fopen(argv[infile_idx], "rb");
 
-
-	//printf("1\n");
 
 	if(fp == NULL){
 		printf("File not found\n");
+		//fclose(fp);
 		return(4);
 	}
 
-	//printf("2\n");
 
 	// Check the size
+	printf("Input: %s ", argv[infile_idx]);
 	int size = get_file_size(fp);
 	
 	//printf("3\n");
@@ -98,7 +118,6 @@ int main(int argc, char *argv[]){
 		return(2);
 	}
 
-	//printf("");
 	//Creates a buffer to read in the contents of the file.
 	char *buf = (char *)malloc((size+1) * sizeof(char));
 
@@ -108,23 +127,25 @@ int main(int argc, char *argv[]){
 	
 	
 	//change this to file)name
-	print_regular(argv[1], buf);
 
-	if(r_and_b == 1)
-		print_reverse(argv[1], buf);
+	
+	if(r_and_b == 0 && reverse == 0)
+		print_regular(argv[outfile_idx], buf);
+
+
 	if(reverse == 1)
-		print_reverse_noflip(argv[1], buf) ;
+		print_reverse_noflip(argv[outfile_idx], buf);
 			
 
+	if(r_and_b == 1)
+		print_reverse(argv[outfile_idx], buf);
+	
+	
 	fclose(fp);
 	free(buf);
-	free(infile);
-	free(file_name);
 
 
 	return(0);
-
-
 }
 
 //Function to get the file size
@@ -135,8 +156,9 @@ int get_file_size(FILE *fp){
 	int size = ftell(fp);
 	fseek(fp, begin, SEEK_SET);
 
-	return size;
+	printf("was %d bytes\n", size);
 
+	return size;
 }
 
 //Usage Function
@@ -172,13 +194,43 @@ void print_regular(char *fo_name, char *buf){
 
 	fclose(fn);	
 
-	//free( names );
 	free(names);
-
-	//printf("exit\n");
 }
 
 
+
+void print_reverse(char *fo_name, char *buf){
+		
+	char *names = malloc(strlen(fo_name)+4*sizeof(char));
+	
+	int i;
+	for(i=0; i<strlen(fo_name); i++){
+		names[i] = fo_name[i];
+	}
+
+	names[strlen(fo_name)] = '.';
+	names[strlen(fo_name)+1] = 'b';
+	names[strlen(fo_name)+2] = 'f';
+	names[strlen(fo_name)+3] = 'r';
+
+	FILE *fn = fopen(names, "w");
+	char temp;
+
+	for(i=strlen(buf)-1; i>=0; i--){
+		temp = buf[i];
+		temp = temp ^ 0xFF;
+		fwrite(&temp, sizeof(temp), 1, fn);
+	}
+
+	fclose(fn);	
+
+	free(names);
+}
+
+
+
+
+/*
 void print_reverse(char *fo_name, char *buf){
 
 	printf("Enter");
@@ -212,12 +264,13 @@ void print_reverse(char *fo_name, char *buf){
 void print_reverse_noflip(char *fo_name, char *buf){
 
 	printf("Enter");
-	char *name = malloc(strlen(fo_name)+2*sizeof(char));
+	char *name = (char *)malloc(strlen(fo_name)+2*sizeof(char));
 	
 	int i;
 	for(i=0; i<strlen(fo_name); i++){
 		name[i] = fo_name[i];
 	}
+
 	name[strlen(fo_name)] = '.';
 	name[strlen(fo_name)+1] = 'r';
 
@@ -236,5 +289,29 @@ void print_reverse_noflip(char *fo_name, char *buf){
 
 }
 
+*/
 
+void print_reverse_noflip(char *fo_name, char *buf){
+		
+	char *names = malloc(strlen(fo_name)+2*sizeof(char));
+	
+	int i;
+	for(i=0; i<strlen(fo_name); i++){
+		names[i] = fo_name[i];
+	}
 
+	names[strlen(fo_name)] = '.';
+	names[strlen(fo_name)+1] = 'r';
+
+	FILE *fn = fopen(names, "w");
+	char temp;
+
+	for(i=strlen(buf)-1; i >= 0; i--){
+		temp = buf[i];
+		fwrite(&temp, sizeof(temp), 1, fn);
+	}
+
+	fclose(fn);
+	free(names);
+
+}
