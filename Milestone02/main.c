@@ -20,17 +20,17 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	//Handle control-c
+	// Handle control-c
 	signal(SIGINT, event_handler);
-
+	// prompt user
 	char command[1000];
 	printf("Execute?????");
 	fgets(command, 1000, stdin);
 
 
-	//Tread the process
+	// Thread the process
 	int cpid = fork();
-	
+	// Error checking
 	if(cpid < 0){
 		printf("Error: Fork Failed\n");
 		return 2;
@@ -47,21 +47,22 @@ int main(int argc, char* argv[]) {
 		}
 		
 
-		char* token;
-		token = strtok(command, " ");
+		char* result;
+		result = strtok(command, " ");
 
 		int i = 0;
-		while(token != NULL){
-			arguments[i] = strdup(token);
-			token = strtok(NULL, " ");
+		while(result != NULL){
+			arguments[i] = strdup(result);
+			result = strtok(NULL, " ");
 			i = i + 1;
 		}	
-		
+		// execute the new program
 		execvp(arguments[0], arguments);
 		printf("Error: Execvp failed! Please enter valid command\n");
 		exit(3);
 
 	}
+	// need to see if in path of parent
 	else {
 		int status;
 		if ( waitpid(cpid, &status, 0) == -1 ) {
