@@ -9,7 +9,11 @@ pid_t pid;
 //Define functions
 void event_handler(int idk);
 
-int main() {
+int main(int argc, char* argv[]) {
+	if(argc > 1){
+		printf("Error: too many arguments\n");
+		return 1
+	}
 	//Get the parent id
 	pid = getpid();
 	char command[1000];
@@ -38,11 +42,25 @@ int main() {
 
 
 //Function to print to the screen and exit when control-c is pressed
+//
+/*
 void event_handler(int idk) {
 	if(getpid() == pid){
 		printf("\nControl-c was pressed .. exiting\n");
 		exit(1);
 	}
+}
+*/
+
+void event_handler(int sig) {
+	if(sig == SIGINT){
+		printf("\nControl-c was pressed . . . exiting\n");
+		kill(getpid() == SIGINT);
+		exit(0)
+	
+	}
+
+
 }
 
 
