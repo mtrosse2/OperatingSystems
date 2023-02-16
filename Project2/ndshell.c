@@ -15,7 +15,11 @@ int string_breakdown(char *string);
 void run_start(char *command);
 int get_pid(char *command);
 int get_pid_kill(char * command);
+void event_handler(int idk);
 
+//Declare global
+int parent_pid;
+int pids[1000] = {0};
 
 int main(int argc, char *argv[]){
 	int i;
@@ -26,6 +30,11 @@ int main(int argc, char *argv[]){
 	int kill_pid = 0;
 	int pids[1000] = {0};
 	int count = 0;
+	int found;
+
+	parent_pid = getpid();
+	signal(SIGINT, event_handler);
+
 
 	if(argc > 1){
 		printf("Too many arguments\n");
@@ -99,6 +108,19 @@ int main(int argc, char *argv[]){
 		}
 
 		if(to_wait == 1){
+			found = 0;
+
+			for(i = 0; i < 1000; i++){
+				if(pids[i] != 0)
+					found = 1;
+			}
+
+			if(found == 0){
+				printf("No child processes running\n");
+				to_wait = 0;
+				continue;
+			}
+
 			wpid = wait(NULL);
 
 			//Change this if we want the array to be more than 1000 elements
@@ -118,6 +140,19 @@ int main(int argc, char *argv[]){
 			to_wait = 0;
 		
 		} else if(to_wait == 2){
+			found = 0;
+
+			for(i = 0; i < 1000; i++){
+				if(pids[i] == pid_to_wait_for)
+					found = 1;
+			}
+
+			if(found == 0){
+				printf("Specified pid not found\n");
+				to_wait = 0;
+				continue;
+			}
+
 			wpid = wait(pid_to_wait_for);
 			
 			for(i=0; i<1000; i++){
@@ -184,7 +219,7 @@ int string_breakdown(char *string){
 		exit_prog(0);
 	*/
 	} else {
-		printf("Invalid command\n");
+		printf("ndshell: Invalid command: %s", string);
 		exit(0);
 	}
 
@@ -212,7 +247,28 @@ int string_breakdown(char *string){
 
 
 void run_start(char *command){
-	system(command);
+	//system(command);
+	char* new_command = strtok(command, "\n");
+	strcpy(command, new_command);
+	char* arguments[1000];
+	for(int i = 0; i < 1000; i++){
+		arguments[i] = NULL;
+	}
+
+	char * result;
+	result = strtok(command, " ");
+
+	int i = 0;
+	while(result != NULL){
+		arguments[i] = strdup(result);
+		result = strtok(NULL, " ");
+		i = i + 1;
+	}
+
+	// execture the mofo
+	execvp(arguments[0], arguments);
+	printf("Got here\n");
+	exit(3);
 }
 
 
@@ -243,6 +299,32 @@ int get_pid_kill(char * command){
 	result = atoi(pid_str);
 
 	return result;
+}
+
+
+void event_handler(int sig) {
+	int i;
+	int found = 0;
+	
+	if(sig == SIGINT){
+
+		for(i=999; i>=0; i--){
+			if(pids[i] != 0){
+				found = 1;
+				kill(pids[i], 9);
+				pids[i] = 0;
+				printf("\nndshell: Control-c pressed: %d exited abnormally with signal 9: Killed.\n", pids[i]);
+				break;
+			}
+		}
+	} 
+	
+
+	if(found == 0 && getpid() == parent_pid)
+		printf("\nndshell: No current child processes running\n");
+	
+	return;
+
 }
 
 
