@@ -14,6 +14,7 @@ Starting code for CSE 30341 Project 3 - Spring 2023
 
 #include "bitmap.h"
 #include "fractal.h"
+#include <ctype.h>
 
 /*
 Compute the number of iterations at point x, y
@@ -32,7 +33,7 @@ complex values.
 
 // Create row-thread info
 struct rowthread_info {
-	struct Bitmap * pBitmap;
+	struct bitmap * pBitmap;
 	struct FractalSettings * pSettings;
 	int nIndex;
 	int rowMin;
@@ -97,8 +98,14 @@ void compute_image_rowthread (void *pData)
 {
 	int i, j;
 
-	for(i=pData->rowMin; i->rowMax; i++){
-		for(i=0; i<pSettings->nPixelWidth; i++) {
+	struct FractalSettings * pSettings;
+	pSettings = pData->pSettings;
+
+	struct bitmap * pBitmap;
+	pBitmap = pData->pBitmap;
+
+	for(i=pData->rowMin; i<pData->rowMax; i++){
+		for(j=0; j<pSettings->nPixelWidth; j++) {
 
 			// Scale from pixels i,j to coordinates x,y
 			double x = pSettings->fMinX + i*(pSettings->fMaxX - pSettings->fMinX) / pSettings->nPixelWidth;
@@ -143,11 +150,11 @@ bool is_number (char number[]){
 
 char processArguments (int argc, char * argv[], struct FractalSettings * pSettings)
 {
-    /* If we don't process anything, it must be successful, right? */
-		int i = 0;
-
+	int i = 0;
+	bool result;
 		for(i = 0; i < argc; i++){
-			if(argv[i] == '-help'){
+
+			if(strcmp(argv[i], "-help")){
 				printf("-help					Display the help information\n");
 				printf("-xmin X				New value for x min\n");
 				printf("-xmax X				New value for x max\n");
@@ -161,81 +168,93 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				printf("-row					Run using a row-based approach\n");
 				printf("-task					Run using a thread-based approach\n");
 			}
-			else if(argv[i] == '-xmin' && i < argc - 1){
+
+			else if(i < argc - 1 && strcmp(argv[i],"-xmin")){
 				result = is_number(argv[i+1]);
 				if(result == true){
-					pSettings->fMinX = argv[i+1];
+					pSettings->fMinX = atof(argv[i+1]);
 					i++;
 				}
 			}
-			else if(argv[i] == '-xmax' && i < argc - 1){
+
+			else if(i < argc - 1 && strcmp(argv[i],"-xmax")){
 				result = is_number(argv[i+1]);
 				if(result == true){
-					pSettings->fMaxX = argv[i+1];
+					pSettings->fMaxX = atof(argv[i+1]);
 					i++;
 				}
 			}
-			else if(argv[i] == '-ymin' && i < argc - 1){
+
+			else if(i < argc - 1 && strcmp(argv[i],"-ymin")){
 				result = is_number(argv[i+1]);
 				if(result == true){
-					pSettings->fMiny = argv[i+1];
+					pSettings->fMinY = atof(argv[i+1]);
 					i++;
 				}
 			}
-			else if(argv[i] == '-ymax' && i < argc - 1){
+
+			else if(i < argc - 1 && strcmp(argv[i],"-ymax")){
 				result = is_number(argv[i+1]);
 				if(result == true){
-					pSettings->fMaxy = argv[i+1];
+					pSettings->fMaxY = atof(argv[i+1]);
 					i++;
 				}
 			}
-			else if(argv[i] == '-maxiter' && i < argc - 1){
+
+			else if(i < argc - 1 && strcmp(argv[i],"-maxiter")){
 				result = is_number(argv[i+1]);
 				if(result == true){
-					pSettings->nMaxIter = argv[i+1];
+					pSettings->nMaxIter = atoi(argv[i+1]);
 					i++;
 				}
 			}
-			else if(argv[i] == '-width' && i < argc - 1){
+
+			else if(i < argc - 1 && strcmp(argv[i],"-width")){
 				result = is_number(argv[i+1]);
 				if(result == true){
-					pSettings->nPixelWidth = argv[i+1];
+					pSettings->nPixelWidth = atoi(argv[i+1]);
 					i++;
 				}
 			}
-			else if(argv[i] == '-height' && i < argc - 1){
+
+			else if(i < argc - 1 && strcmp(argv[i],"-height")){
 				result = is_number(argv[i+1]);
 				if(result == true){
-					pSettings->nPixelHeight = argv[i+1];
+					pSettings->nPixelHeight = atoi(argv[i+1]);
 					i++;
 				}
 			}
-			else if(argv[i] == '-output' && i < argc - 1){
+			
+			else if(i < argc - 1 && strcmp(argv[i], "-output")){
 				result = is_number(argv[i+1]);
 				if(result == true){
-					pSettings->szOutfile = argv[i+1];
+					strcpy(pSettings->szOutfile,argv[i+1]);
 					i++;
 				}
 			}
-			else if(argv[i] == '-threads' && i < argc - 1){
+
+			else if( i < argc - 1 && strcmp(argv[i],"-threads")){
 				result = is_number(argv[i+1]);
 				if(result == true){
-					pSettings->nThreads = argv[i+1];
+					pSettings->nThreads = atoi(argv[i+1]);
 					i++;
 				}
 			}
-			else if(argv[i] == '-row') {
+
+			else if(strcmp(argv[i],"-row")){
 				pSettings->theMode = MODE_THREAD_ROW;
 			}
-			else if(argv[i] == '-task') {
-				psettings->theMode = MODE_THREAD_TASK;
+
+			else if(strcmp(argv[i], "-task")){
+				pSettings->theMode = MODE_THREAD_TASK;
 			}
-			else {
+
+			else{
 				continue;
 			}
 		}
-
-    return 1;
+	// RETURN SOMETHING DIFFERENT HERE LATER
+	return 0;
 }
 
 
@@ -318,18 +337,18 @@ int main( int argc, char *argv[] )
 
 						int i;
 						for(i=0; i<theSettings.nThreads; i++){
-								rowthread_info[i].nIndex = i;
-								rowthread_info[i].rowMin = i * num_rows_per_thread;
-								rowthread_info[i].rowMax = (i+1) * num_rows_per_thread - 1;
-								rowthread_info[i].pBitmap = pBitmap;
-								rowthread_info[i].theSettings = &theSettings;
+								thread_info[i].nIndex = i;
+								thread_info[i].rowMin = i * num_rows_per_thread;
+								thread_info[i].rowMax = (i+1) * num_rows_per_thread - 1;
+								thread_info[i].pBitmap = pBitmap;
+								thread_info[i].pSettings = &theSettings;
 						}
 
 						for(i=0; i<theSettings.nThreads; i++)
-								pthread_create(&rowthread_info[i].ThreadID, NULL, compute_image_rowthread, (void *) &rowthread_info[i]);
+								pthread_create(&thread_info[i].ThreadID, NULL, compute_image_rowthread, (void *) &thread_info[i]);
 
 						for(i=0; i<theSettings.nThreads; i++)
-								pthread_join(tid[i], NULL);
+								pthread_join(thread_info[i].ThreadID, NULL);
 						
 						
             if(!bitmap_save(pBitmap,theSettings.szOutfile)) {
