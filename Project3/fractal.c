@@ -252,6 +252,9 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->fMinX = atof(argv[i+1]);
+					if(atof(argv[i+1]) < 1000.0){
+						pSettings->fMinX = DEFAULT_MIN_X;
+					}
 					i++;
 				}
 			}
@@ -260,6 +263,9 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->fMaxX = atof(argv[i+1]);
+					if(atof(argv[i+1]) > 1000.0){
+						pSettings->fMaxX = DEFAULT_MAX_X;
+					}
 					i++;
 				}
 			}
@@ -268,6 +274,9 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->fMinY = atof(argv[i+1]);
+					if(atof(argv[i+1]) < -1000.0){
+						pSettings->fMinY = DEFAULT_MIN_Y;
+					}
 					i++;
 				}
 			}
@@ -276,6 +285,9 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->fMaxY = atof(argv[i+1]);
+					if(atof(argv[i+1]) > 1000.0){
+						pSettings->fMaxY = DEFAULT_MAX_Y;
+					}
 					i++;
 				}
 			}
@@ -284,6 +296,9 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->nMaxIter = atoi(argv[i+1]);
+					if(atoi(argv[i+1]) < 0 || atoi(argv[i+1]) > 3000){
+						pSettings->nMaxIter = DEFAULT_MAX_ITER;
+					}
 					i++;
 				}
 			}
@@ -292,6 +307,9 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->nPixelWidth = atoi(argv[i+1]);
+					if(atof(argv[i+1]) > 1000.0 || atof(argv[i+1]) < 0){
+						pSettings->nPixelWidth = DEFAULT_PIXEL_WIDTH;
+					}
 					i++;
 				}
 			}
@@ -300,6 +318,9 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->nPixelHeight = atoi(argv[i+1]);
+					if(atof(argv[i+1]) > 1000.0 || atof(argv[i+1]) < 0){
+						pSettings->nPixelHeight = DEFAULT_PIXEL_HEIGHT;
+					}
 					i++;
 				}
 			}
@@ -316,6 +337,9 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->nThreads = atoi(argv[i+1]);
+					if(atoi(argv[i+1]) >= 4){
+						pSettings->nThreads = 4;
+					}
 					i++;
 				}
 			}
