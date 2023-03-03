@@ -41,6 +41,23 @@ struct rowthread_info {
 	pthread_t ThreadID;
 };
 
+struct taskthread_info {
+	struct bitmap * pBitmap;
+	struct FractalSettings * pSettings;
+	int nIndex;
+	int row;
+	int col;
+	//int *tasks;
+	pthread_t ThreadID;
+};
+
+// Create global tasks array and lock
+int num_rows;
+int num_cols;
+int *tasks;
+pthread_mutex_t the_lock;
+pthread_cond_t thread_wait;
+
 
 
 static int compute_point( double x, double y, int max )
@@ -52,7 +69,7 @@ static int compute_point( double x, double y, int max )
 
 	while( cabs(z)<4 && iter < max ) {
 		z = cpow(z,2) + alpha;
-		iter++;
+		iter	++;
 	}
 
 	return iter;
@@ -128,6 +145,65 @@ void compute_image_rowthread (void *pData1)
 
 }
 
+
+void compute_image_taskthread (void *pData1)
+{
+	int i, j;
+
+	struct taskthread_info * pData  = (struct taskthread_info *) pData1;
+
+	struct FractalSettings * pSettings;
+	pSettings = pData->pSettings;
+
+	struct bitmap * pBitmap;
+	pBitmap = pData->pBitmap;
+
+	while(1){
+	// Lock
+	pthread_mutex_lock(&the_lock);
+	//Maybe wait in a while loop?
+	
+	// Find next available section
+	for(i=0; i<num_rows * num_cols; i++){
+		if(tasks[i] == 0){
+			printf("Found\n");
+			tasks[i] = 1;
+			pData->row = i/num_rows;
+			pData->col = i%num_cols;
+			continue;
+		}
+		if(i == num_rows*num_cols-1){
+			printf("Got here\n");
+			pthread_mutex_unlock(&the_lock);
+			return;
+		}
+	}
+
+	pthread_mutex_unlock(&the_lock);
+	// Maybe broadcast
+
+	// print the data
+	for(i=pData->row*20; i<pData->row*20+20; i++){
+		for(j=pData->col*20; j<pData->col*20+20; j++) {
+			// Scale from pixels i,j to coordinates x,y
+			double x = pSettings->fMinX + i*(pSettings->fMaxX - pSettings->fMinX) / pSettings->nPixelWidth;
+			double y = pSettings->fMinY + j*(pSettings->fMaxY - pSettings->fMinY) / pSettings->nPixelHeight;
+
+			// Compute the iterations at x,y
+			int iter = compute_point(x,y,pSettings->nMaxIter);
+
+			// Convert a iteration number to an RGB color.
+			// (Change this bit to get more interesting colors.)
+			int gray = 255 * iter / pSettings->nMaxIter;
+
+      // Set the particular pixel to the specific value
+			// Set the pixel in the bitmap.
+			bitmap_set(pBitmap,i,j,gray);
+		}
+	}
+	}
+
+}
 
 /* Process all of the arguments as provided as an input and appropriately modify the
    settings for the project 
@@ -355,7 +431,7 @@ int main( int argc, char *argv[] )
 						
 						
             if(!bitmap_save(pBitmap,theSettings.szOutfile)) {
-                fprintf(stderr,"fractal: couldn't write to %s: %s\n",theSettings.szOutfile,strerror(errno));
+            		fprintf(stderr,"fractal: couldn't write to %s: %s\n",theSettings.szOutfile,strerror(errno));
                 return 1;
             }            
 						
@@ -376,7 +452,44 @@ int main( int argc, char *argv[] )
                While we could do condition variables, there is not really an ongoing producer if we create all of
                the tasks at the outset. Hence, it is OK whenever a thread needs something to do to try to access
                that shared data structure with all of the respective tasks.  
-               */
+              */
+							
+            	struct bitmap * pBitmap = bitmap_create(theSettings.nPixelWidth, theSettings.nPixelHeight);
+
+            	bitmap_reset(pBitmap,MAKE_RGBA(0,0,255,0));
+
+							int i;
+							struct taskthread_info thread_info[theSettings.nThreads];
+
+							num_rows = theSettings.nPixelHeight/20;
+							num_cols = theSettings.nPixelHeight/20;
+							tasks = malloc(num_rows * num_cols * sizeof(int));
+							
+							for(i=0; i < num_rows*num_cols; i++){
+								tasks[i] = 0;
+							}
+							
+							for(i=0; i<theSettings.nThreads; i++){
+								thread_info[i].row = i;
+								tasks[i] = 0;
+								thread_info[i].col = 0;
+								thread_info[i].pBitmap = pBitmap;
+								thread_info[i].pSettings = &theSettings;
+								thread_info[i].nIndex = i;
+								//thread_info[i].tasks = tasks;
+							}
+
+							for(i=0; i<theSettings.nThreads; i++)
+								pthread_create(&thread_info[i].ThreadID, NULL, compute_image_taskthread, (void *)&thread_info[i]);
+
+							for(i=0; i<theSettings.nThreads; i++)
+								pthread_join(thread_info[i].ThreadID, NULL);
+
+            	if(!bitmap_save(pBitmap,theSettings.szOutfile)) {
+            		fprintf(stderr,"fractal: couldn't write to %s: %s\n",theSettings.szOutfile,strerror(errno));
+                return 1;
+            }            
+						free(tasks);
         }
         else 
         {
