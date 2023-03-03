@@ -111,7 +111,7 @@ void compute_image_singlethread ( struct FractalSettings * pSettings, struct bit
 }
 
 //
-void compute_image_rowthread (void *pData1)
+void *compute_image_rowthread (void *pData1)
 {
 	int i, j;
 
@@ -123,8 +123,8 @@ void compute_image_rowthread (void *pData1)
 	struct bitmap * pBitmap;
 	pBitmap = pData->pBitmap;
 
-	for(i=pData->rowMin; i<pData->rowMax; i++){
-		for(j=0; j<pSettings->nPixelWidth; j++) {
+	for(j=pData->rowMin; j<pData->rowMax; j++){
+		for(i=0; i<pSettings->nPixelWidth; i++) {
 
 			// Scale from pixels i,j to coordinates x,y
 			double x = pSettings->fMinX + i*(pSettings->fMaxX - pSettings->fMinX) / pSettings->nPixelWidth;
@@ -143,10 +143,12 @@ void compute_image_rowthread (void *pData1)
 		}
 	}
 
+	return NULL;
+
 }
 
 
-void compute_image_taskthread (void *pData1)
+void *compute_image_taskthread (void *pData1)
 {
 	int i, j;
 
@@ -166,25 +168,23 @@ void compute_image_taskthread (void *pData1)
 	// Find next available section
 	for(i=0; i<num_rows * num_cols; i++){
 		if(tasks[i] == 0){
-			printf("Found\n");
+			//printf("Found\n");
 			tasks[i] = 1;
-			pData->row = i/num_rows;
+			pData->row = i/num_cols;
 			pData->col = i%num_cols;
-			continue;
+			break;
 		}
 		if(i == num_rows*num_cols-1){
-			printf("Got here\n");
 			pthread_mutex_unlock(&the_lock);
-			return;
+			return NULL;
 		}
 	}
 
 	pthread_mutex_unlock(&the_lock);
-	// Maybe broadcast
 
 	// print the data
-	for(i=pData->row*20; i<pData->row*20+20; i++){
-		for(j=pData->col*20; j<pData->col*20+20; j++) {
+	for(j=pData->row*20; j<pData->row*20+20; j++){
+		for(i=pData->col*20; i<pData->col*20+20; i++) {
 			// Scale from pixels i,j to coordinates x,y
 			double x = pSettings->fMinX + i*(pSettings->fMaxX - pSettings->fMinX) / pSettings->nPixelWidth;
 			double y = pSettings->fMinY + j*(pSettings->fMaxY - pSettings->fMinY) / pSettings->nPixelHeight;
@@ -225,7 +225,7 @@ bool is_number (char number[]){
 		return true;
 }
 
-
+// Parse command line arguments
 char processArguments (int argc, char * argv[], struct FractalSettings * pSettings)
 {
 	int i = 0;
@@ -304,8 +304,8 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				}
 			}
 			
-			else if(i < argc - 1 && strcmp(argv[i], "-output") == 0){
-				result = is_number(argv[i+1]);
+			else if(i < argc-1 && strcmp(argv[i], "-output") == 0){
+				result = true;
 				if(result == true){
 					strcpy(pSettings->szOutfile,argv[i+1]);
 					i++;
@@ -414,6 +414,7 @@ int main( int argc, char *argv[] )
 
 						int num_rows_per_thread = theSettings.nPixelHeight/theSettings.nThreads;
 
+						// Intitialize thread struct
 						int i;
 						for(i=0; i<theSettings.nThreads; i++){
 								thread_info[i].nIndex = i;
@@ -423,6 +424,7 @@ int main( int argc, char *argv[] )
 								thread_info[i].pSettings = &theSettings;
 						}
 
+						// Create and join the threads
 						for(i=0; i<theSettings.nThreads; i++)
 								pthread_create(&thread_info[i].ThreadID, NULL, compute_image_rowthread, (void *)&thread_info[i]);
 
@@ -454,6 +456,7 @@ int main( int argc, char *argv[] )
                that shared data structure with all of the respective tasks.  
               */
 							
+							//Create the structs and set globals
             	struct bitmap * pBitmap = bitmap_create(theSettings.nPixelWidth, theSettings.nPixelHeight);
 
             	bitmap_reset(pBitmap,MAKE_RGBA(0,0,255,0));
@@ -462,23 +465,23 @@ int main( int argc, char *argv[] )
 							struct taskthread_info thread_info[theSettings.nThreads];
 
 							num_rows = theSettings.nPixelHeight/20;
-							num_cols = theSettings.nPixelHeight/20;
+							num_cols = theSettings.nPixelWidth/20;
 							tasks = malloc(num_rows * num_cols * sizeof(int));
 							
 							for(i=0; i < num_rows*num_cols; i++){
 								tasks[i] = 0;
 							}
 							
+							// initialize thread args
 							for(i=0; i<theSettings.nThreads; i++){
 								thread_info[i].row = i;
-								tasks[i] = 0;
 								thread_info[i].col = 0;
 								thread_info[i].pBitmap = pBitmap;
 								thread_info[i].pSettings = &theSettings;
 								thread_info[i].nIndex = i;
-								//thread_info[i].tasks = tasks;
 							}
 
+							// Create the threads and join them
 							for(i=0; i<theSettings.nThreads; i++)
 								pthread_create(&thread_info[i].ThreadID, NULL, compute_image_taskthread, (void *)&thread_info[i]);
 
@@ -493,6 +496,7 @@ int main( int argc, char *argv[] )
         }
         else 
         {
+						return 0;
             /* Uh oh - how did we get here? */
         }
    }
