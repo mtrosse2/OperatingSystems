@@ -252,7 +252,7 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->fMinX = atof(argv[i+1]);
-					if(atof(argv[i+1]) < 1000.0){
+					if(atof(argv[i+1]) < -1000.0){
 						pSettings->fMinX = DEFAULT_MIN_X;
 					}
 					i++;
