@@ -94,9 +94,11 @@ void compute_image_singlethread ( struct FractalSettings * pSettings, struct bit
 }
 
 //
-void compute_image_rowthread (void *pData)
+void compute_image_rowthread (void *pData1)
 {
 	int i, j;
+
+	struct rowthread_info * pData  = (struct rowthread_info *) pData1;
 
 	struct FractalSettings * pSettings;
 	pSettings = pData->pSettings;
@@ -152,9 +154,9 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 {
 	int i = 0;
 	bool result;
-		for(i = 0; i < argc; i++){
+		for(i = 1; i < argc; i++){
 
-			if(strcmp(argv[i], "-help")){
+			if(strcmp(argv[i], "-help") == 0){
 				printf("-help					Display the help information\n");
 				printf("-xmin X				New value for x min\n");
 				printf("-xmax X				New value for x max\n");
@@ -167,9 +169,10 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				printf("-threads N		Number of threads to use for processing (default is 1)\n");
 				printf("-row					Run using a row-based approach\n");
 				printf("-task					Run using a thread-based approach\n");
+				return 0;
 			}
 
-			else if(i < argc - 1 && strcmp(argv[i],"-xmin")){
+			else if(i < argc - 1 && strcmp(argv[i],"-xmin") == 0){
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->fMinX = atof(argv[i+1]);
@@ -177,7 +180,7 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				}
 			}
 
-			else if(i < argc - 1 && strcmp(argv[i],"-xmax")){
+			else if(i < argc - 1 && strcmp(argv[i],"-xmax") == 0){
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->fMaxX = atof(argv[i+1]);
@@ -185,7 +188,7 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				}
 			}
 
-			else if(i < argc - 1 && strcmp(argv[i],"-ymin")){
+			else if(i < argc - 1 && strcmp(argv[i],"-ymin") == 0){
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->fMinY = atof(argv[i+1]);
@@ -193,7 +196,7 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				}
 			}
 
-			else if(i < argc - 1 && strcmp(argv[i],"-ymax")){
+			else if(i < argc - 1 && strcmp(argv[i],"-ymax") == 0){
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->fMaxY = atof(argv[i+1]);
@@ -201,7 +204,7 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				}
 			}
 
-			else if(i < argc - 1 && strcmp(argv[i],"-maxiter")){
+			else if(i < argc - 1 && strcmp(argv[i],"-maxiter") == 0){
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->nMaxIter = atoi(argv[i+1]);
@@ -209,7 +212,7 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				}
 			}
 
-			else if(i < argc - 1 && strcmp(argv[i],"-width")){
+			else if(i < argc - 1 && strcmp(argv[i],"-width") == 0){
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->nPixelWidth = atoi(argv[i+1]);
@@ -217,7 +220,7 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				}
 			}
 
-			else if(i < argc - 1 && strcmp(argv[i],"-height")){
+			else if(i < argc - 1 && strcmp(argv[i],"-height") == 0){
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->nPixelHeight = atoi(argv[i+1]);
@@ -225,7 +228,7 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				}
 			}
 			
-			else if(i < argc - 1 && strcmp(argv[i], "-output")){
+			else if(i < argc - 1 && strcmp(argv[i], "-output") == 0){
 				result = is_number(argv[i+1]);
 				if(result == true){
 					strcpy(pSettings->szOutfile,argv[i+1]);
@@ -233,7 +236,7 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				}
 			}
 
-			else if( i < argc - 1 && strcmp(argv[i],"-threads")){
+			else if( i < argc - 1 && strcmp(argv[i],"-threads") == 0){
 				result = is_number(argv[i+1]);
 				if(result == true){
 					pSettings->nThreads = atoi(argv[i+1]);
@@ -241,11 +244,11 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 				}
 			}
 
-			else if(strcmp(argv[i],"-row")){
+			else if(strcmp(argv[i],"-row") == 0){
 				pSettings->theMode = MODE_THREAD_ROW;
 			}
 
-			else if(strcmp(argv[i], "-task")){
+			else if(strcmp(argv[i], "-task") == 0){
 				pSettings->theMode = MODE_THREAD_TASK;
 			}
 
@@ -254,7 +257,7 @@ char processArguments (int argc, char * argv[], struct FractalSettings * pSettin
 			}
 		}
 	// RETURN SOMETHING DIFFERENT HERE LATER
-	return 0;
+	return 1;
 }
 
 
@@ -345,7 +348,7 @@ int main( int argc, char *argv[] )
 						}
 
 						for(i=0; i<theSettings.nThreads; i++)
-								pthread_create(&thread_info[i].ThreadID, NULL, compute_image_rowthread, (void *) &thread_info[i]);
+								pthread_create(&thread_info[i].ThreadID, NULL, compute_image_rowthread, (void *)&thread_info[i]);
 
 						for(i=0; i<theSettings.nThreads; i++)
 								pthread_join(thread_info[i].ThreadID, NULL);
